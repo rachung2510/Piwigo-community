@@ -14,7 +14,7 @@ if (!defined('PHPWG_ROOT_PATH'))
   die('Hacking attempt!');
 }
 
-global $prefixeTable;
+global $prefixeTable, $conf;
 
 // +-----------------------------------------------------------------------+
 // | Define plugin constants                                               |
@@ -24,6 +24,7 @@ defined('COMMUNITY_ID') or define('COMMUNITY_ID', basename(dirname(__FILE__)));
 define('COMMUNITY_PATH' , PHPWG_PLUGINS_PATH.basename(dirname(__FILE__)).'/');
 define('COMMUNITY_PERMISSIONS_TABLE', $prefixeTable.'community_permissions');
 define('COMMUNITY_PENDINGS_TABLE', $prefixeTable.'community_pendings');
+define('COMMUNITY_DOWNLOAD_LOCAL',   PHPWG_ROOT_PATH . $conf['data_location'] . 'community_downloads/'); // path for zip download action
 
 include_once(COMMUNITY_PATH.'include/functions_community.inc.php');
 
@@ -184,8 +185,75 @@ function community_gallery_menu($menu_ref_arr)
     $edit_url = make_index_url(array('section' => 'edit_photos'));
     $images_added = 0;
 
+    // query suffixes for additional filters: prefilter, tags, qsearch
+    // only add suffixes if filter is enabled
+    global $prefixeTable;
+    if ($user_permissions['filters']['enable']) {
+
+      // prefilters query
+      if ($user_permissions['filters']['prefilter']['value']) {
+        if (isset($page['section']) && $page['section']=='favorites') {
+          $url_suffix = '&amp;favorites';
+        } elseif (isset($page['section']) && $page['section']=='recent_pics') {
+          $url_suffix = '&amp;recent_pics';
+        } elseif (isset($page['col_id'])) {
+//            $query = '
+//                SELECT image_id
+//                FROM '.$prefixeTable.'collections
+//                JOIN '.$prefixeTable.'collection_images ON id=col_id
+//                WHERE col_id='.$page["col_id"].'
+//            ;';
+//            $col_ids = query2array($query);
+//            $col_ids = array_map(function ($arr) { return $arr['image_id']; }, $col_ids);
+//            $s = base64_encode(serialize($col_ids)); // serialize user collection ids for POST retrieval
+            $url_suffix = '&amp;col_id='.$page["col_id"];
+        }
+//add_event_handler('loc_end_index','myfunc'); // User Collections $page variables defined
+//function myfunc() {
+//    global $prefixeTable, $conf, $page;
+//    if (isset($page['col_id'])) {
+//        $query = '
+//            SELECT image_id 
+//            FROM '.$prefixeTable.'collections 
+//            JOIN '.$prefixeTable.'collection_images ON id=col_id
+//            WHERE col_id='.$page["col_id"].'
+//        ;';
+//        print_r(query2array($query));
+//        echo "<br><br>";
+//        print_r(count(query2array($query)));
+//    }
+//}
+      }
+
+      // tags query
+      if ($user_permissions['filters']['tags']['value'] and isset($page['tag_ids'])) {
+        $s = base64_encode(serialize($page['tag_ids'])); // serialize tag ids for POST retrieval
+        $url_suffix = '&amp;tag_ids='.$s;
+      }
+
+      // qsearch query
+      if ($user_permissions['filters']['q']['value'] and isset($page['qsearch_details'])) {
+        $s = base64_encode(serialize($page['qsearch_details']['q'])); // serialize qsearch details for POST retrieval
+        $url_suffix = '&amp;q='.$s;
+      }
+
+      // search.php query
+      if (($user_permissions['filters']['album']['value'] or
+        $user_permissions['filters']['q']['value'] or
+        $user_permissions['filters']['tags']['value']) and
+        isset($page['search'])
+      ){
+        $url_suffix = '&amp;search_id='.$page['search'];
+//        $res = query2array('SELECT * FROM '.SEARCH_TABLE.' WHERE id='.$page["search"].';');
+//        print_r(safe_unserialize($res[0]['rules']));
+      }
+    }
+
     if (isset($page['category']))
     {
+      clearFilters(); // clear all filters when moving to different page
+                      // so that user won't have to constantly delete previous filters
+
       // are there photos added by the current user in this album?
       $query = '
 SELECT
@@ -198,13 +266,31 @@ SELECT
       $results = query2array($query);
       $images_added = $results[0]['images_count'];
 
-      if ($images_added > 0)
+      // $url_suffix generation conditions modified
+      // if album filter is enabled, album query will be added even if $images_added=0
+      // album filter allows for inclusion of child albums; user may want to edit photos in subalbums
+      if ($images_added > 0  or $user_permissions['filters']['album']['value'])
       {
         $edit_url.= $url_suffix;
       }
     }
+    elseif (isset($page['tag_ids']) or isset($page['qsearch_details']) or  // tag and qsearch filters
+              (isset($page['section']) && $page['section']=='favorites') or //favorites page
+              (isset($page['section']) && $page['section']=='recent_pics') or //recent pics page
+              (isset($page['search'])) or // search.php
+              (isset($page['col_id'])) // user collections page
+    ){
+      clearFilters();
+      $images_added = count($page['items']);
+      $edit_url.= isset($url_suffix) ? $url_suffix : ''; // url suffix will not be generated if filter not enabled
+    }
     else
     {
+      // also clear filters when user navigates to homepage
+      if (isset($page['section']) && $page['section']=='categories') {
+        clearFilters();
+      }
+
       $query = '
 SELECT
     COUNT(*) AS images_count
@@ -215,8 +301,9 @@ SELECT
       $images_added = $results[0]['images_count'];
     }
 
-    if ($images_added > 0)
-    {
+    // $edit_url shown if user can perform at least one action for the whole gallery (scope filter enabled)
+    // or album filter enabled (user may wish to include child albums in the filter)
+    if ($images_added > 0 or $user_permissions['filters']['scope']['value'] or $user_permissions['filters']['album']['value']) {
       array_splice(
         $block->data,
         count($block->data),
@@ -231,6 +318,18 @@ SELECT
       );
     }
   }
+}
+
+/**
+ * Clears all existing prefilters
+ * so that user won't have to constantly delete previous filters
+ */
+function clearFilters() {
+  unset($_SESSION['bulk_manager_filter']['scope']);
+  unset($_SESSION['bulk_manager_filter']['prefilter']);
+  unset($_SESSION['bulk_manager_filter']['category']);
+  unset($_SESSION['bulk_manager_filter']['tags']);
+  unset($_SESSION['bulk_manager_filter']['search']);
 }
 
 
