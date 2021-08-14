@@ -128,7 +128,8 @@ if ($user_permissions['filters']['enable']) {
       $_SESSION['bulk_manager_filter']['prefilter'] = 'last_import';
     }
 
-    $page['cat_elements_id'] = (getFilteredSet($photo_set) !== null) ? getFilteredSet($photo_set) : $photo_set; // get filtered set if not null
+    $filtered_set = getFilteredSet($photo_set);
+    $page['cat_elements_id'] = ($filtered_set !== null) ? $filtered_set : $photo_set; // get filtered set if not null
 
 } else { // if filters not enabled
     $page['cat_elements_id'] = $photo_set;
@@ -160,14 +161,6 @@ else if (isset($_POST['selection']))
 // | global mode form submission                                           |
 // +-----------------------------------------------------------------------+
 
-$base_url = make_index_url(array('section' => 'edit_photos'));
-// only activate when filters not enabled so that album filter can be properly removed
-if (isset($_GET['category_id']) and !$user_permissions['filters']['enable'])
-{
-  $base_url .= '&amp;category_id='.$_GET['category_id'];
-}
-$redirect_url = $base_url;
-
 // filters from form submission
 if (isset($_POST['submitFilter']))
 {
@@ -191,10 +184,13 @@ if (isset($_POST['submitFilter']))
   // album
   if (isset($_POST['filter_category_use']))
   {
-    check_input_parameter('filter_category', $_POST, false, PATTERN_ID);
     if (isset($_POST['filter_category'])) {
-      $_SESSION['bulk_manager_filter']['category'] = $_POST['filter_category'];
-      $category_options_selected = $_POST['filter_category'];
+      $cats = array();
+      foreach ($_POST['filter_category'] as $cat) {
+          array_push($cats, $cat);
+      }
+      $_SESSION['bulk_manager_filter']['category'] = $cats;
+      $category_options_selected = $cats;
     }
     if (isset($_POST['filter_category_recursive']))
     {
@@ -225,10 +221,18 @@ if (isset($_POST['submitFilter']))
   else unset($_SESSION['bulk_manager_filter']['search']);
 
   $_SESSION['bulk_manager_filter'] = trigger_change('batch_manager_register_filters', $_SESSION['bulk_manager_filter']);
-  $page['cat_elements_id'] = (getFilteredSet($photo_set) !== null) ? getFilteredSet($photo_set) : $photo_set; // get filtered set if not null
+  $filtered_set = getFilteredSet($photo_set);
+  $page['cat_elements_id'] = ($filtered_set !== null) ? $filtered_set : $photo_set; // get filtered set if not null
 
 }
 
+$base_url = make_index_url(array('section' => 'edit_photos'));
+// only activate when filters not enabled so that album filter can be properly removed
+if (isset($_GET['category_id']) and !$user_permissions['filters']['enable'])
+{
+  $base_url .= '&amp;category_id='.$_GET['category_id'];
+}
+$redirect_url = $base_url;
 
 if (isset($_POST['submit']))
 {
@@ -498,7 +502,8 @@ if (count($page['cat_elements_id']) > 0)
 
   $is_category = false;
   if (isset($_SESSION['bulk_manager_filter']['category'])
-      and !isset($_SESSION['bulk_manager_filter']['category_recursive']))
+      and !isset($_SESSION['bulk_manager_filter']['category_recursive'])
+      and !is_array($_SESSION['bulk_manager_filter']['category']))
   {
     $is_category = true;
   }
@@ -650,9 +655,10 @@ SELECT
 $prefilters = array(
   array('ID' => 'favorites', 'NAME' => l10n('Your favorites')),
   array('ID' => 'last_import', 'NAME' => l10n('Last import')),
-  array('ID' => 'no_album', 'NAME' => l10n('With no album').' ('.l10n('Orphans').')'),
   array('ID' => 'no_tag', 'NAME' => l10n('With no tag')),
 );
+//  array('ID' => 'no_album', 'NAME' => l10n('With no album').' ('.l10n('Orphans').')'),
+
 
 $prefilters = trigger_change('get_batch_manager_prefilters', $prefilters);
 
@@ -748,8 +754,7 @@ $template->assign_var_from_handle('PLUGIN_INDEX_CONTENT_BEGIN', 'edit_photos');
  */
 function getFilteredSet($photo_set) {
     global $user;
-
-    // echo '<pre>'; print_r($_SESSION['bulk_manager_filter']); echo '</pre>';
+    //echo '<pre>'; print_r($_SESSION['bulk_manager_filter']); echo '</pre>';
 
     // depending on the current filter (in session), we find the appropriate photos
     $filterExists = FALSE; // check if filter exists
@@ -807,13 +812,8 @@ function getFilteredSet($photo_set) {
         AND `category_id` NOT IN (' .$user["forbidden_categories"]. ')
     ;';
           $filter_sets[] = query2array($query, null, 'id');
-
         }
 
-        break;
-
-      case 'no_album':
-        $filter_sets[] = get_orphans();
         break;
 
       case 'no_tag':
@@ -835,7 +835,6 @@ function getFilteredSet($photo_set) {
         break;
       }
     }
-
     // filter set by album
     if (isset($_SESSION['bulk_manager_filter']['category']))
     {
@@ -843,21 +842,23 @@ function getFilteredSet($photo_set) {
       $categories = array();
 
       // we need to check the category still exists (it may have been deleted since it was added in the session)
-      $query = '
-    SELECT COUNT(*)
-      FROM '.CATEGORIES_TABLE.'
-      WHERE id = '.$_SESSION['bulk_manager_filter']['category'].'
-    ;';
-      list($counter) = pwg_db_fetch_row(pwg_query($query));
-      if (0 == $counter)
-      {
-        unset($_SESSION['bulk_manager_filter']);
-        redirect(get_root_url().'admin.php?page='.$_GET['page']);
+      $deleted_cat_ids = array();
+      foreach ($_SESSION["bulk_manager_filter"]["category"] as $cat_id) {
+        $query = '
+      SELECT COUNT(*)
+        FROM '.CATEGORIES_TABLE.'
+        WHERE id = '.$cat_id.'
+      ;';
+        list($counter) = pwg_db_fetch_row(pwg_query($query));
+        if (0 == $counter) {
+          array_push($deleted_cat_ids, $cat_id);
+        }
       }
+      $_SESSION["bulk_manager_filter"]["category"] = array_diff($_SESSION["bulk_manager_filter"]["category"], $deleted_cat_ids);
 
       if (isset($_SESSION['bulk_manager_filter']['category_recursive']))
       {
-        $categories = get_subcat_ids(array($_SESSION['bulk_manager_filter']['category']));
+        $categories = get_subcat_ids($_SESSION['bulk_manager_filter']['category']);
 
         // remove forbidden categories
         $forbidden_categories = array_map('intval',explode(',', $user['forbidden_categories']));
@@ -865,7 +866,7 @@ function getFilteredSet($photo_set) {
       }
       else
       {
-        $categories = array($_SESSION['bulk_manager_filter']['category']);
+        $categories = $_SESSION['bulk_manager_filter']['category'];
       }
 
       $query = '

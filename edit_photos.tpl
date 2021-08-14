@@ -34,6 +34,13 @@ jQuery(document).ready(function() {
   tagsCache.selectize(jQuery('[data-selectize=tags]'), { lang: {
     'Add': '{'Create'|translate}'
   }});
+
+  jQuery("#filter_category select").selectize({
+    plugins: ['remove_button'],
+    maxOptions:jQuery(this).find("option").length
+  });
+
+
 });
 
 var nb_thumbs_page = {$nb_thumbs_page};
@@ -353,9 +360,9 @@ jQuery("#addAlbumForm form").submit(function(e){
         <li id="filter_category" {if !isset($filter.category)}style="display:none"{/if}>
           <input type="checkbox" name="filter_category_use" class="useFilterCheckbox" {if isset($filter.category)}checked="checked"{/if}>
           <p>{'Album'|@translate}</p>
-      <select name="filter_category">
-        {html_options options=$category_options selected=$category_options_selected}
-      </select>
+          <select name="filter_category[]" multiple>
+            {html_options options=$category_options selected=$category_options_selected}
+          </select>
           <a href="#" class="removeFilter" title="{'remove this filter'|translate}"><span>[x]</span></a>
           <label class="font-checkbox"><span class="icon-check"></span><input type="checkbox" name="filter_category_recursive" {if isset($filter.category_recursive)}checked="checked"{/if}> {'include child albums'|@translate}</label>
         </li>

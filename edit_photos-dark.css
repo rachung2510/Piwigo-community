@@ -141,9 +141,10 @@ input:focus + .slider {
 
 
 #addFilter, #filterList select, .pictureLevels select, #permitAction select {background-color: #444444; color: #BFBFBF}
-#filter_category .selectize-input.items.full.has-options.has-items, #filter_tags .selectize-input.items.not-full.has-options, 
-#filter_tags .selectize-input.items.not-full, #filter_search input, #action_associate .selectize-input.items.full.has-options.has-items,
 
+#filter_category .selectize-input.items.not-full.has-options, #filter_category .selectize-input.items.not-full,
+#filter_tags .selectize-input.items.not-full.has-options, #filter_tags .selectize-input.items.not-full,
+#filter_search input, #action_associate .selectize-input.items.full.has-options.has-items,
 #permitAction select {background: #3C3C3C; color: #C0C0C0;}
 
 #addFilter optgroup, #batchManagerGlobal option[disabled] {background-color: #555;}

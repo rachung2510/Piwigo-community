@@ -96,7 +96,7 @@
 #filter_level::before {margin-top: 28px; margin-left: 260px;}
 #action_level::after {margin-top: -56px; margin-left: 254px;}
 #filter_search input {width: 100%; box-sizing: border-box; padding: 10px 18px;}
-#addFilter, #filterList select, #filter_tags .selectize-input.items.not-full.has-options, .pictureLevels select {
+#addFilter, #filterList select, #filter_category .selectize-input.items.not-full.has-options, #filter_tags .selectize-input.items.not-full.has-options, .pictureLevels select {
         font-family: "Open Sans", "Lucida Grande",Verdana,Arial,"Bitstream Vera Sans",sans-serif;
         -webkit-appearance: none;
         font-weight: 700;
@@ -132,12 +132,14 @@
 }
 #batchManagerGlobal .thumbSelected img {opacity: 0.35; border: 1px solid #fea744 !important;}
 #batchManagerGlobal li.thumbSelected:hover .font-checkbox [class*="icon-check"]::before {display: block;}
+/*
 #filter_category .selectize-input.items.full.has-options.has-items .item,
 #filter_category .selectize-input.items.not-full.has-options .item,
 #filter_category .selectize-input.items.not-full .item {width: 561px; text-overflow: ellipsis;}
 #filter_category .selectize-input.items.full.has-options.has-items,
 #filter_category .selectize-input.items.not-full.has-options,
 #filter_category .selectize-input.items.not-full {width: 610px;}
+*/
 #forbidAction {text-align: center; font-weight: 600; padding: 25px 0; background-color: #f3f3f3; color:#777;}
 .selectionEmptyBlock {text-align: center; font-weight: 600; padding: 90px 0;}
 #duplicates_options {display: flex; flex-direction: column;}
@@ -469,7 +471,9 @@ display:block; position:absolute; z-index:101; padding:8px 0 0 3px; color:white;
 .filterBlock li {width: 300px; height: auto;}
 #filterList #permitAction select {display: block; padding: 10px 18px; margin-bottom: 5px; width: 290px;}
 #filterList li {margin-left: 25px; margin-bottom: 15px;}
+#filter_category .selectize-input.items.not-full.has-options, #filter_category .selectize-input.items.not-full,
 #filter_tags .selectize-input.items.not-full.has-options, #filter_tags .selectize-input.items.not-full {padding: 10px 18px;}
+#filter_search input[name="q"] {padding: 10px 18px;}
 #filter_tags .selectize-input {width: 100%; box-shadow: none; border-radius: inherit;}
 #filter_category select, #filter_prefilter select, #filter_scope select {padding: 10px 18px; width: 100%; margin-bottom: 5px;}
 #filterList .selectize-input.items.not-full.has-options {margin-bottom: 5px;}
