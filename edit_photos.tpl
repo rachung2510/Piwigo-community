@@ -387,6 +387,7 @@ jQuery("#addAlbumForm form").submit(function(e){
           <p>{'Search'|@translate}</p>
           <a href="#" class="removeFilter" title="{'remove this filter'|translate}"><span>[x]</span></a>
           <input name="q" size=40 value="{$filter.search.q|stripslashes|htmlspecialchars}">
+          <a href="popuphelp.php?page=quick_search" onclick="popuphelp(this.href);return false;" title="{'Help'|@translate}"><span class="icon-help-circled">{'Search tips'|translate}</span></a>
           {combine_script id='core.scripts' load='async' path='themes/default/js/scripts.js'}
   {if (isset($no_search_results))}
   <div>{'No results for'|@translate} :

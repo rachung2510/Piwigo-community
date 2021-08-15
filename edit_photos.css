@@ -511,3 +511,10 @@ div#linkToCreate {
 
 /* colorbox */
 #addAlbumForm { color: #777; }
+
+/* popup help */
+table.qsearch_help_table td {
+border: 1px solid #ccc;
+padding: 5px;
+vertical-align: top;
+}

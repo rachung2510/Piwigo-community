@@ -209,6 +209,15 @@ function community_gallery_menu($menu_ref_arr)
         $s = base64_encode(serialize($page['qsearch_details']['q'])); // serialize qsearch details for POST retrieval
         $url_suffix = '&amp;q='.$s;
       }
+
+      // search.php query
+      if (($user_permissions['filters']['album']['value'] or
+        $user_permissions['filters']['q']['value'] or
+        $user_permissions['filters']['tags']['value']) and
+        (isset($page['search']) and !isset($page['qsearch_details'])) // not qsearch
+      ){
+        $url_suffix = '&amp;search_id='.$page['search'];
+      }
     }
 
     if (isset($page['category']))
@@ -236,10 +245,11 @@ SELECT
         $edit_url.= $url_suffix;
       }
     }
-    elseif (isset($page['tag_ids']) or isset($page['qsearch_details']) or  // tag and search filters
-              (isset($page['section']) && $page['section']=='favorites') or //favorites page
-              (isset($page['section']) && $page['section']=='recent_pics')) //recent pics page
-    {
+    elseif (isset($page['tag_ids']) or isset($page['qsearch_details']) or  // tag and qsearch filters
+      (isset($page['section']) && $page['section']=='favorites') or //favorites page
+      (isset($page['section']) && $page['section']=='recent_pics') or //recent pics page
+      isset($page['search']) // search.php
+    ){
       clearFilters();
       $images_added = count($page['items']);
       $edit_url.= isset($url_suffix) ? $url_suffix : ''; // url suffix will not be generated if filter not enabled
@@ -1119,4 +1129,23 @@ function community_cat_modify_submit()
       );
   }
 }
+
+/* add styles to quick search tips in Edit Photos filters */
+add_event_handler('get_popup_help_content','community_edit_qsearch_popup_styles');
+function community_edit_qsearch_popup_styles($content, $page) {
+  if ('quick_search'==$page) {
+      $search[] = '<table class="qsearch_help_table">';
+      $replace[] = '<table class="qsearch_help_table" style="border-collapse: collapse; margin: 0;">';
+
+      $search[] = '<td>';
+      $replace[] = '<td style="border: 1px solid #ccc; padding: 5px; vertical-align: top;">';
+
+      $search[] = '<q>';
+      $replace[] = '<q style="font-family: Courier,Fixed; font-weight: bold;">';
+
+      $content = str_replace($search, $replace, $content);
+      return $content;
+  }
+}
+
 ?>

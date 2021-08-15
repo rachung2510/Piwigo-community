@@ -116,6 +116,51 @@ if ($user_permissions['filters']['enable']) {
       $_SESSION['bulk_manager_filter']['search']['q'] = $url_q;
     }
 
+    // init search filters: album, tag, and/or qsearch
+    elseif (isset($_GET['search_id']))
+    {
+      $search_id = $_GET['search_id'];
+      $res = query2array('SELECT * FROM '.SEARCH_TABLE.' WHERE id='.$search_id.';');
+      $queries = safe_unserialize($res[0]['rules'])['fields'];
+//      echo "<pre>"; print_r($queries); echo "<post>";
+
+      // have to check indiv permissions again
+      if ($user_permissions['filters']['q']['value'] and isset($queries['allwords'])) {
+        // search mode converted to qsearch
+        $words = array_filter($queries['allwords']['words'], function($word) { return !empty($word); }); // remove empty values
+        $q_words = array_map(function($word) { return '"'.$word.'"'; }, $words);
+        $q_words = implode(($queries['allwords']['mode']=='OR') ? ' OR ' : ' AND ', $q_words);
+
+        $q = '';
+        if (isset($queries['search_in_tags'])) {
+          $tag_words = array_map(function($word) { return '*'.$word.'*'; }, $words);
+          $q .= 'tag:('.implode(" OR ",$tag_words).')'; // tags search applies OR condition to tags
+        }
+        if (isset($queries['allwords']['fields'])) {
+          // qsearch does not differentiate between title and description; will have to merge
+          if (in_array('name',$queries['allwords']['fields']) or in_array('comment',$queries['allwords']['fields'])) {
+            $q .= (empty($q) ? '' : ' OR ').'photo:('.$q_words.')';
+          }
+          if (in_array('file',$queries['allwords']['fields'])) {
+            $q .= (empty($q) ? '' : ' OR ').'file:('.$q_words.')';
+          }
+        }
+
+        if (!empty($q)) {
+          $_SESSION['bulk_manager_filter']['search']['q'] = $q;
+        }
+      }
+      if ($user_permissions['filters']['tags']['value'] and isset($queries['tags'])) {
+        $_SESSION['bulk_manager_filter']['tags'] = $queries['tags']['words'];
+        $_SESSION['bulk_manager_filter']['tag_mode'] = $queries['tags']['mode'];
+      }
+      if ($user_permissions['filters']['album']['value'] and isset($queries['cat'])) {
+        $_SESSION['bulk_manager_filter']['category'] = $queries['cat']['words'];
+        $category_options_selected = $queries['cat']['words'];
+        $_SESSION['bulk_manager_filter']['category_recursive'] = $queries['cat']['sub_inc'];
+      }
+    }
+
     // init prefilter:favorites
     elseif (isset($_GET['favorites']))
     {
@@ -939,5 +984,6 @@ function in_favorites($img_id) {
 //    console_log($data);
     return ($data == null) ? false : true;
 }
+
 
 ?>
