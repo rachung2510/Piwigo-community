@@ -97,7 +97,7 @@ if ($user_permissions['filters']['enable']) {
     // init album filter
     if (isset($_GET['category_id']))
     {
-      $_SESSION['bulk_manager_filter']['category'] = $_GET['category_id'];
+      $_SESSION['bulk_manager_filter']['category'][] = $_GET['category_id'];
       $category_options_selected = $_GET['category_id']; // set album filter option based on page
     }
 
@@ -503,7 +503,7 @@ if (count($page['cat_elements_id']) > 0)
   $is_category = false;
   if (isset($_SESSION['bulk_manager_filter']['category'])
       and !isset($_SESSION['bulk_manager_filter']['category_recursive'])
-      and !is_array($_SESSION['bulk_manager_filter']['category']))
+      and 1 == count($_SESSION['bulk_manager_filter']['category']))
   {
     $is_category = true;
   }
@@ -514,7 +514,7 @@ SELECT id,path,representative_ext,file,filesize,level,name,width,height,rotation
 
   if ($is_category)
   {
-    $category_info = get_cat_info($_SESSION['bulk_manager_filter']['category']);
+    $category_info = get_cat_info($_SESSION['bulk_manager_filter']['category'][0]);
 
     $conf['order_by'] = $conf['order_by_inside_category'];
     if (!empty($category_info['image_order']))
@@ -532,7 +532,7 @@ SELECT id,path,representative_ext,file,filesize,level,name,width,height,rotation
   if ($is_category)
   {
     $query.= '
-    AND category_id = '.$_SESSION['bulk_manager_filter']['category'];
+    AND category_id = '.$_SESSION['bulk_manager_filter']['category'][0];
   }
 
   $query.= '
