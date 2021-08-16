@@ -316,7 +316,7 @@ $(document).ready(function() {
               {if $key == 'scope'}
                 <a class="icon-info-circled-1 showInfo" style="display:inline" title="{{'Users can filter photos posted by themselves or all photos. Only enabled when the permission of at least one action is set to "The whole gallery".'|@translate}|@escape:'html'}"></a>
               {elseif $key == 'prefilter'}
-                <a class="icon-info-circled-1 showInfo" style="display:inline" title="{{'Users can filter favorites, recent photos, orphan photos (no album) or photos without tags.'|@translate}|@escape:'html'}"></a>
+                <a class="icon-info-circled-1 showInfo" style="display:inline" title="{{'Users can filter favorites, recent photos, or photos without tags.'|@translate}|@escape:'html'}"></a>
               {/if}
             {/if}
           </td>
